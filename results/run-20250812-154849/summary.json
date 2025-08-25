@@ -1,0 +1,21 @@
+{
+  "run_id": "run-20250812-154849",
+  "algo": "bruteforce_numpy",
+  "dataset": {
+    "N": 100000,
+    "D": 128,
+    "nq": 1000,
+    "dist": "gaussian"
+  },
+  "data_key": "toy_gaussian_N100000_D128_nq1000_seed42",
+  "metric": "l2",
+  "k": 10,
+  "latency_ms_avg": 21.8096,
+  "latency_ms_p95": 35.0891,
+  "recall_at_k": 0.9999,
+  "visited_nodes": 100000,
+  "edges": 0,
+  "build_time_s": 0.0,
+  "ram_rss_mb_before_build": 111.68,
+  "ram_rss_mb_after_build": 111.68
+}

@@ -1,0 +1,19 @@
+{
+  "run_id": "run-20250811-175641",
+  "dataset": {
+    "N": 100000,
+    "D": 128,
+    "nq": 1000,
+    "dist": "gaussian"
+  },
+  "metric": "l2",
+  "k": 10,
+  "latency_ms_avg": 2.982,
+  "latency_ms_p95": 4.0017,
+  "recall_at_k": 1.0,
+  "visited_nodes": 100000,
+  "edges": 0,
+  "build_time_s": 0.0261,
+  "ram_rss_mb_before_build": 106.97,
+  "ram_rss_mb_after_build": 158.22
+}

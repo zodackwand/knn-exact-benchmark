@@ -1,0 +1,15 @@
+{
+  "algo": "ball_prune",
+  "dataset_key": "toy_gaussian_N2000_D64_nq200_seed42",
+  "metric": "l2",
+  "k": 1,
+  "latency_ms_avg": 16.4224,
+  "latency_ms_p95": 17.2711,
+  "recall_at_k": 1.0,
+  "build_time_s": 182.2386,
+  "ram_rss_mb_before_build": 65.75,
+  "ram_rss_mb_after_build": 22.07,
+  "visited_nodes": null,
+  "edges": 29467,
+  "combo_dir": "results/run-20250818-204051/ball_prune__toy_gaussian_N2000_D64_nq200_seed42/k1"
+}

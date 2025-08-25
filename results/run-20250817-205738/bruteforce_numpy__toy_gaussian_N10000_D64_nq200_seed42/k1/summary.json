@@ -1,0 +1,15 @@
+{
+  "algo": "bruteforce_numpy",
+  "dataset_key": "toy_gaussian_N10000_D64_nq200_seed42",
+  "metric": "l2",
+  "k": 1,
+  "latency_ms_avg": 4.0979,
+  "latency_ms_p95": 11.9954,
+  "recall_at_k": 1.0,
+  "build_time_s": 0.0002,
+  "ram_rss_mb_before_build": 14.07,
+  "ram_rss_mb_after_build": 14.46,
+  "visited_nodes": 10000,
+  "edges": 0,
+  "combo_dir": "results/run-20250817-205738/bruteforce_numpy__toy_gaussian_N10000_D64_nq200_seed42/k1"
+}
