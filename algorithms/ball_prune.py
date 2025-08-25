@@ -1,16 +1,13 @@
 # algorithms/ball_prune.py
 # Адаптер вокруг реализаций из allens_code (Ball-Prune / dynamic radius BFS)
 import time
-from typing import Tuple, Optional, Dict, Any
-        self.xb: Optional[np.ndarray] = None
-        self._stats: Dict[str, Any] = {
-    def build(self, xb: np.ndarray, metric: Optional[str] = None):
-        self._stats["ram_rss_mb_after_build"] = psutil.Process().memory_info().rss / 1e6
-        _expanded, knn_list, _jumps = bfs_within_ball_dynamic(
-        idx = np.array([i for d, i in knn_list[:k]], dtype=np.int64)
-        dist = np.array([d for d, i in knn_list[:k]], dtype=np.float32)
+import os
+import numpy as np
+import psutil
+from typing import Tuple, Optional, Dict, Any, Union
 from allens_code.functions.query import bfs_within_ball_dynamic
 from allens_code.functions.distance import sq_Euclidean_d
+from allens_code.functions.construction import build_ball_traversable_graph, create_percentile_radii_by_node
 
 
 class Algo:
@@ -24,7 +21,7 @@ class Algo:
         self.ef_search = ef_search
         self.seed_select_sample = seed_select_sample
 
-        self.xb: np.ndarray | None = None
+        self.xb: Optional[np.ndarray] = None
         self.graph = None
         self.safe_radii_by_node = None
         self.percentile_radii_by_node = None
@@ -33,9 +30,11 @@ class Algo:
             "build_time_s": None,
             "ram_rss_mb_after_build": None,
             "edges": None,
+            "visited_nodes_avg": None,
+            "visited_nodes_p95": None,
         }
 
-    def build(self, xb: np.ndarray, metric: str | None = None):
+    def build(self, xb: np.ndarray, metric: Optional[str] = None):
         if metric is not None and metric != self.metric:
             if metric != "l2":
                 raise ValueError("Ball_Prune поддерживает только metric='l2'")
@@ -96,7 +95,7 @@ class Algo:
             return np.array([root], dtype=np.int64), np.array([d], dtype=np.float32)
         idx = np.array([i for _, i in knn_list[:k]], dtype=np.int64)
         dist = np.array([d for d, _ in knn_list[:k]], dtype=np.float32)
-        return idx, dist
+        return idx, dist, len(expanded)
 
     def query(self, xq: np.ndarray, k: int):
         if self.xb is None or self.graph is None:
@@ -105,8 +104,15 @@ class Algo:
         nq = xq.shape[0]
         I = np.empty((nq, k), dtype=np.int64)
         D = np.empty((nq, k), dtype=np.float32)
+        visited_counts = []
         for i in range(nq):
-            idx, dist = self._query_one(xq[i], k)
+            result = self._query_one(xq[i], k)
+            if len(result) == 3:
+                idx, dist, visited = result
+                visited_counts.append(visited)
+            else:
+                idx, dist = result
+                visited_counts.append(0)
             if idx.shape[0] < k:
                 # добьём до k простым брутфорсом по базе — редкий случай
                 need = k - idx.shape[0]
@@ -121,6 +127,10 @@ class Algo:
                     dist = np.concatenate([dist, scores[ord_].astype(np.float32)])
             I[i, :k] = idx[:k]
             D[i, :k] = dist[:k]
+        # Update stats with visited node metrics
+        if visited_counts:
+            self._stats["visited_nodes_avg"] = float(np.mean(visited_counts))
+            self._stats["visited_nodes_p95"] = float(np.percentile(visited_counts, 95))
         return I, D
 
     def stats(self):

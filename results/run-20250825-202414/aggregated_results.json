@@ -1,0 +1,32 @@
+[
+  {
+    "algo": "ball_prune",
+    "dataset_key": "toy_gaussian_N100_D2_nq10_seed42",
+    "metric": "l2",
+    "k": 1,
+    "latency_ms_avg": 0.6921,
+    "latency_ms_p95": 1.2914,
+    "recall_at_k": 1.0,
+    "build_time_s": 0.2274,
+    "ram_rss_mb_before_build": 54.64,
+    "ram_rss_mb_after_build": 54.72,
+    "visited_nodes": null,
+    "edges": 300,
+    "combo_dir": "results/run-20250825-202414/ball_prune__toy_gaussian_N100_D2_nq10_seed42/k1"
+  },
+  {
+    "algo": "ball_prune",
+    "dataset_key": "toy_gaussian_N100_D2_nq10_seed42",
+    "metric": "l2",
+    "k": 10,
+    "latency_ms_avg": 1.9766,
+    "latency_ms_p95": 3.0261,
+    "recall_at_k": 1.0,
+    "build_time_s": 0.2274,
+    "ram_rss_mb_before_build": 54.64,
+    "ram_rss_mb_after_build": 54.72,
+    "visited_nodes": null,
+    "edges": 300,
+    "combo_dir": "results/run-20250825-202414/ball_prune__toy_gaussian_N100_D2_nq10_seed42/k10"
+  }
+]
