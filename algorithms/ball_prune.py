@@ -32,6 +32,8 @@ class Algo:
             "edges": None,
             "visited_nodes_avg": None,
             "visited_nodes_p95": None,
+            "visited_nodes_rel_avg": None,
+            "index_size_bytes": None,
         }
 
     def build(self, xb: np.ndarray, metric: Optional[str] = None):
@@ -55,11 +57,21 @@ class Algo:
         build_time_s = time.perf_counter() - t0
         self._stats["build_time_s"] = float(build_time_s)
         self._stats["ram_rss_mb_after_build"] = psutil.Process(os.getpid()).memory_info().rss / 1e6
+        
         # число рёбер
         if self.graph is not None:
-            self._stats["edges"] = int(sum(len(v) for v in self.graph.values()))
+            total_edges = sum(len(v) for v in self.graph.values())
+            self._stats["edges"] = int(total_edges)
+            self._stats["avg_out_degree"] = float(total_edges / len(self.graph))
         else:
             self._stats["edges"] = 0
+            self._stats["avg_out_degree"] = 0.0
+            
+        # Index structure size estimate
+        xb_size = self.xb.nbytes
+        graph_size = sum(len(v) * 4 for v in self.graph.values()) if self.graph else 0  # 4 bytes per int
+        radii_size = len(self.safe_radii_by_node) * 8 if self.safe_radii_by_node else 0  # 8 bytes per float
+        self._stats["index_size_bytes"] = xb_size + graph_size + radii_size
 
     def _choose_seed(self, q: np.ndarray) -> int:
         """Простой выбор стартовой точки: перебираем небольшой семпл базы и берём ближайшую по L2."""
@@ -74,7 +86,7 @@ class Algo:
         d2 = np.sum((self.xb[cand] - q) ** 2, axis=1)
         return int(cand[int(np.argmin(d2))])
 
-    def _query_one(self, q: np.ndarray, k: int) -> Tuple[np.ndarray, np.ndarray]:
+    def _query_one(self, q: np.ndarray, k: int) -> Tuple[np.ndarray, np.ndarray, int]:
         q = q.astype(np.float32, copy=False)
         root = self._choose_seed(q)
         expanded, knn_list, _jumps = bfs_within_ball_dynamic(
@@ -92,7 +104,7 @@ class Algo:
             # fallback: если ничего не найдено (маловероятно), вернём ближайшее из семпла
             root = self._choose_seed(q)
             d = sq_Euclidean_d(q, self.xb[root])
-            return np.array([root], dtype=np.int64), np.array([d], dtype=np.float32)
+            return np.array([root], dtype=np.int64), np.array([d], dtype=np.float32), 1
         idx = np.array([i for _, i in knn_list[:k]], dtype=np.int64)
         dist = np.array([d for d, _ in knn_list[:k]], dtype=np.float32)
         return idx, dist, len(expanded)
@@ -105,14 +117,11 @@ class Algo:
         I = np.empty((nq, k), dtype=np.int64)
         D = np.empty((nq, k), dtype=np.float32)
         visited_counts = []
+        
         for i in range(nq):
-            result = self._query_one(xq[i], k)
-            if len(result) == 3:
-                idx, dist, visited = result
-                visited_counts.append(visited)
-            else:
-                idx, dist = result
-                visited_counts.append(0)
+            idx, dist, visited = self._query_one(xq[i], k)
+            visited_counts.append(visited)
+            
             if idx.shape[0] < k:
                 # добьём до k простым брутфорсом по базе — редкий случай
                 need = k - idx.shape[0]
@@ -127,10 +136,13 @@ class Algo:
                     dist = np.concatenate([dist, scores[ord_].astype(np.float32)])
             I[i, :k] = idx[:k]
             D[i, :k] = dist[:k]
+            
         # Update stats with visited node metrics
         if visited_counts:
             self._stats["visited_nodes_avg"] = float(np.mean(visited_counts))
             self._stats["visited_nodes_p95"] = float(np.percentile(visited_counts, 95))
+            self._stats["visited_nodes_rel_avg"] = float(np.mean(visited_counts) / self.xb.shape[0])
+            
         return I, D
 
     def stats(self):

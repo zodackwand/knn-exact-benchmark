@@ -1,0 +1,19 @@
+{
+  "algo": "ball_prune",
+  "dataset_key": "toy_gaussian_N100_D2_nq10_seed42",
+  "metric": "l2",
+  "k": 10,
+  "latency_ms_avg": 9.0552,
+  "latency_ms_p95": 20.1974,
+  "recall_at_k": 1.0,
+  "build_time_s": 0.2322,
+  "ram_rss_mb_before_build": 52.65,
+  "ram_rss_mb_after_build": 52.76,
+  "visited_nodes_avg": 30.8,
+  "visited_nodes_p95": 51.599999999999966,
+  "visited_nodes_rel_avg": 0.308,
+  "edges": 300,
+  "avg_out_degree": 3.0,
+  "index_size_bytes": 2800,
+  "combo_dir": "results/run-20250825-203358/ball_prune__toy_gaussian_N100_D2_nq10_seed42/k10"
+}

@@ -3,6 +3,7 @@ import time
 import os
 import psutil
 import numpy as np
+from typing import Optional
 
 
 class BruteForceNumpy:
@@ -11,11 +12,18 @@ class BruteForceNumpy:
         self.params = params
         self.index = None
         self.is_built = False
-        self._stats = {}
+        self._stats = {
+            "build_time_s": None,
+            "ram_rss_mb_after_build": None,
+            "index_size_bytes": None,
+        }
 
-    def build(self, data):
+    def build(self, data, metric: Optional[str] = None):
         start_time = time.perf_counter()
 
+        if metric is not None:
+            self.metric = metric
+            
         self.index = data.astype(np.float32, copy=False)
         if self.metric == "cos":
             # Нормализуем базу для косинусного расстояния
@@ -24,6 +32,12 @@ class BruteForceNumpy:
 
         self.is_built = True
         build_time = time.perf_counter() - start_time
+        
+        # Record stats
+        self._stats["build_time_s"] = float(build_time)
+        self._stats["ram_rss_mb_after_build"] = psutil.Process(os.getpid()).memory_info().rss / 1e6
+        self._stats["index_size_bytes"] = self.index.nbytes
+
         return build_time
 
     def query(self, queries, k):
@@ -82,7 +96,7 @@ class Algo:
             "ram_rss_mb_after_build": None,
         }
 
-    def build(self, xb: np.ndarray, metric: str | None = None):
+    def build(self, xb: np.ndarray, metric: Optional[str] = None):
         if metric is not None:
             self.metric = metric
             self._bf.metric = metric
@@ -91,6 +105,11 @@ class Algo:
         build_time_s = time.perf_counter() - t0
         self._stats["build_time_s"] = float(build_time_s)
         self._stats["ram_rss_mb_after_build"] = psutil.Process(os.getpid()).memory_info().rss / 1e6
+        # Get index size from the underlying bruteforce object
+        if hasattr(self._bf, 'index') and self._bf.index is not None:
+            self._stats["index_size_bytes"] = self._bf.index.nbytes
+        else:
+            self._stats["index_size_bytes"] = 0
 
     def query(self, xq: np.ndarray, k: int):
         return self._bf.query(xq, k)

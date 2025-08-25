@@ -1,0 +1,19 @@
+{
+  "algo": "bruteforce_numpy",
+  "dataset_key": "toy_gaussian_N10000_D64_nq200_seed42",
+  "metric": "l2",
+  "k": 10,
+  "latency_ms_avg": 9.2094,
+  "latency_ms_p95": 20.6184,
+  "recall_at_k": 1.0,
+  "build_time_s": 0.0,
+  "ram_rss_mb_before_build": 58.24,
+  "ram_rss_mb_after_build": 58.24,
+  "visited_nodes_avg": null,
+  "visited_nodes_p95": null,
+  "visited_nodes_rel_avg": null,
+  "edges": null,
+  "avg_out_degree": null,
+  "index_size_bytes": 2560000,
+  "combo_dir": "results/run-20250825-203604/bruteforce_numpy__toy_gaussian_N10000_D64_nq200_seed42/k10"
+}

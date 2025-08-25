@@ -110,8 +110,12 @@ def run_single(algo_name: str,
             "build_time_s": round(stats.get("build_time_s", build_time_s), 4),
             "ram_rss_mb_before_build": round(rss_before, 2),
             "ram_rss_mb_after_build": round(stats.get("ram_rss_mb_after_build", rss_after), 2),
-            "visited_nodes": stats.get("visited_nodes"),
+            "visited_nodes_avg": stats.get("visited_nodes_avg"),
+            "visited_nodes_p95": stats.get("visited_nodes_p95"),
+            "visited_nodes_rel_avg": stats.get("visited_nodes_rel_avg"),
             "edges": stats.get("edges"),
+            "avg_out_degree": stats.get("avg_out_degree"),
+            "index_size_bytes": stats.get("index_size_bytes"),
             "combo_dir": combo_dir,
         }
         with open(os.path.join(combo_dir, "summary.json"), "w") as f:
@@ -172,7 +176,8 @@ def run_benchmark(config_path: str):
         "algo", "dataset_key", "metric", "k",
         "latency_ms_avg", "latency_ms_p95", "recall_at_k",
         "build_time_s", "ram_rss_mb_before_build", "ram_rss_mb_after_build",
-        "visited_nodes", "edges", "combo_dir"
+        "visited_nodes_avg", "visited_nodes_p95", "visited_nodes_rel_avg",
+        "edges", "avg_out_degree", "index_size_bytes", "combo_dir"
     ]
     with open(csv_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
