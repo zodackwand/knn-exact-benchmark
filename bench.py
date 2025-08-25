@@ -5,8 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import psutil
 import yaml
-from datasets.make_toy import load_or_make, load_by_key
-from datasets import ground_truth as gt_mod
+from utils.make_toy import load_or_make, load_by_key
+from utils import ground_truth as gt_mod
 
 
 def safe_load_algo(name: str, metric: str):
@@ -71,6 +71,8 @@ def run_single(algo_name: str,
             I_pred, D_pred = algo.query(q, k)
             dt_ms = (time.perf_counter_ns() - t0) / 1e6
             lat_ms.append(dt_ms)
+            if (i + 1) % 50 == 0 or (i + 1) == len(xq):
+                print(f"[~] progress {i+1}/{len(xq)} for {algo_name} @ {dataset_key} k={k}", flush=True)
         lat_ms = np.array(lat_ms, dtype=np.float64)
         avg_ms = float(lat_ms.mean())
         p95_ms = float(np.percentile(lat_ms, 95))
@@ -130,7 +132,7 @@ def run_benchmark(config_path: str):
     os.makedirs(run_dir, exist_ok=True)
 
     algorithms = cfg.get("algorithms", [])
-    datasets = cfg.get("utils", [])
+    datasets = cfg.get("datasets", [])
     metrics = cfg.get("metrics", ["latency", "recall@1", "recall@10", "memory", "build_time"])  # для совместимости
     k_values = cfg.get("k_values", [10])
     data_dir = cfg.get("data_dir", "data")

@@ -1,5 +1,7 @@
 # algorithms/bruteforce_numpy.py - исправленная версия
 import time
+import os
+import psutil
 import numpy as np
 
 
@@ -22,7 +24,6 @@ class BruteForceNumpy:
 
         self.is_built = True
         build_time = time.perf_counter() - start_time
-
         return build_time
 
     def query(self, queries, k):
@@ -63,3 +64,36 @@ class BruteForceNumpy:
         x_norm2 = np.sum(self.index * self.index, axis=1)
         dots = np.dot(queries, self.index.T)
         return q_norm2 + x_norm2[None, :] - 2.0 * dots
+
+
+class Algo:
+    """
+    Adapter exposing a stable interface expected by bench.py:
+      - build(xb, metric)
+      - query(xq, k) -> (I, D)
+      - stats() -> dict
+    """
+    def __init__(self, metric: str = "l2", **params):
+        self.metric = metric
+        self.params = params
+        self._bf = BruteForceNumpy(metric=metric, **params)
+        self._stats = {
+            "build_time_s": None,
+            "ram_rss_mb_after_build": None,
+        }
+
+    def build(self, xb: np.ndarray, metric: str | None = None):
+        if metric is not None:
+            self.metric = metric
+            self._bf.metric = metric
+        t0 = time.perf_counter()
+        self._bf.build(xb)
+        build_time_s = time.perf_counter() - t0
+        self._stats["build_time_s"] = float(build_time_s)
+        self._stats["ram_rss_mb_after_build"] = psutil.Process(os.getpid()).memory_info().rss / 1e6
+
+    def query(self, xq: np.ndarray, k: int):
+        return self._bf.query(xq, k)
+
+    def stats(self):
+        return dict(self._stats)

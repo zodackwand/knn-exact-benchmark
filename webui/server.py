@@ -39,7 +39,7 @@ def _compute_total_steps(cfg_path: Path) -> int:
     with open(cfg_path, "r") as f:
         cfg = yaml.safe_load(f)
     algorithms = cfg.get("algorithms", [])
-    datasets = cfg.get("utils", [])
+    datasets = cfg.get("datasets", [])
     k_values = cfg.get("k_values", [10])
     # count only actual algorithm entries
     algo_count = 0
