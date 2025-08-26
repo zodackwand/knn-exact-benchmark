@@ -15,14 +15,14 @@ def safe_load_algo(name: str, metric: str):
         AlgoClass = getattr(mod, "Algo")
         return AlgoClass(metric=metric)
     except Exception as e:
-        print(f"[!] Не удалось загрузить алгоритм '{name}': {e}. Пропускаю.")
+        print(f"[!] Failed to load algorithm '{name}': {e}. Skipping.")
         return None
 
 
 def recall_at_k(I_pred: np.ndarray, I_true: np.ndarray) -> float:
     k = I_true.shape[1]
     if I_pred.shape[1] < k:
-        # подрезаем true если вдруг сравниваем с меньшим k
+        # Trim true if we compare with a smaller k
         k = I_pred.shape[1]
         I_true = I_true[:, :k]
     hits = 0
@@ -38,7 +38,7 @@ def run_single(algo_name: str,
                warmup: int,
                data_dir: str,
                out_root: str) -> List[Dict[str, Any]]:
-    """Запускает один алгоритм на одном датасете для списка k. Возвращает список сводок."""
+    """Run one algorithm on one dataset for a list of k values. Returns a list of per-(k) summaries."""
     xb, xq, meta = load_by_key(dataset_key, data_dir=data_dir)
     run_dir = os.path.join(out_root, f"{algo_name}__{dataset_key}")
     os.makedirs(run_dir, exist_ok=True)
@@ -57,7 +57,7 @@ def run_single(algo_name: str,
     if w > 0:
         _ = algo.query(xq[:w], max(k_values))
 
-    # подготовим GT один раз с максимальным k
+    # prepare ground-truth once with the maximum k
     k_max = max(k_values)
     I_true_max, _D_true_max = gt_mod.load_or_generate(meta["key"], xb, xq, k=k_max, metric=metric)
 
@@ -90,7 +90,7 @@ def run_single(algo_name: str,
         combo_dir = os.path.join(run_dir, f"k{k}")
         os.makedirs(combo_dir, exist_ok=True)
 
-        # сохраняем артефакты per-k
+        # save per-k artifacts
         np.savetxt(os.path.join(combo_dir, "latencies_ms.csv"), lat_ms, delimiter=",", fmt="%.6f")
         plt.figure()
         plt.bar(["avg_ms", "p95_ms"], [avg_ms, p95_ms])
@@ -137,7 +137,7 @@ def run_benchmark(config_path: str):
 
     algorithms = cfg.get("algorithms", [])
     datasets = cfg.get("datasets", [])
-    metrics = cfg.get("metrics", ["latency", "recall@1", "recall@10", "memory", "build_time"])  # для совместимости
+    metrics = cfg.get("metrics", ["latency", "recall@1", "recall@10", "memory", "build_time"])  # backward compat placeholder
     k_values = cfg.get("k_values", [10])
     data_dir = cfg.get("data_dir", "data")
     warmup = cfg.get("warmup", 50)
@@ -164,7 +164,7 @@ def run_benchmark(config_path: str):
             )
             all_rows.extend(rows)
 
-    # агрегаты
+    # aggregate outputs
     agg_json_path = os.path.join(run_dir, "aggregated_results.json")
     with open(agg_json_path, "w") as f:
         json.dump(all_rows, f, indent=2)
@@ -192,9 +192,9 @@ def run_benchmark(config_path: str):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--config", type=str, default=None, help="Путь к YAML конфигу. Если задан, используется режим бенчмарка по конфигу.")
+    ap.add_argument("--config", type=str, default=None, help="Path to YAML config. If set, uses config-driven benchmark mode.")
     ap.add_argument("--algo", type=str, default="faiss_exact",
-                    help="имя модуля в algorithms/, напр. faiss_exact или bruteforce_numpy")
+                    help="module name in algorithms/, e.g. faiss_exact or bruteforce_numpy")
     ap.add_argument("--n", type=int, default=100_000)
     ap.add_argument("--dim", type=int, default=128)
     ap.add_argument("--nq", type=int, default=1_000)
@@ -211,7 +211,7 @@ def main():
         run_benchmark(args.config)
         return
 
-    # Одноразовый режим (как раньше), c кеш-GT
+    # One-off mode (legacy), with GT cache
     os.makedirs(args.outdir, exist_ok=True)
     run_id = dt.datetime.now().strftime("run-%Y%m%d-%H%M%S")
     run_dir = os.path.join(args.outdir, run_id)
@@ -221,7 +221,7 @@ def main():
     xb, xq, meta = load_or_make(N=args.n, D=args.dim, nq=args.nq, dist=args.dist, seed=args.seed, data_dir=args.data_dir)
     print(f"[+] Data ready (cached or generated): xb={xb.shape}, xq={xq.shape}")
 
-    # Выбираем алгоритм
+    # Choose algorithm
     print(f"[+] Loading algorithm: {args.algo}")
     algo = safe_load_algo(args.algo, metric=args.metric)
     if algo is None:
@@ -239,7 +239,7 @@ def main():
     if w > 0:
         _I, _D = algo.query(xq[:w], args.k)
 
-    # Пер-запросные латентности
+    # Per-query latencies
     lat_ms = []
     print("[+] Running queries...")
     for i in range(len(xq)):
@@ -253,11 +253,11 @@ def main():
     avg_ms = float(lat_ms.mean())
     p95_ms = float(np.percentile(lat_ms, 95))
 
-    # Точное топ-k для Recall (ground truth) — кешируем
+    # Ground-truth top-k for Recall — cached
     print("[+] Computing/loading ground-truth for Recall@k...")
     I_true, _ = gt_mod.load_or_generate(meta["key"], xb, xq, args.k, metric=args.metric)
 
-    # Предсказания для Recall
+    # Predictions for Recall
     I_pred_all, _ = algo.query(xq, args.k)
     rec = recall_at_k(I_pred_all, I_true)
 

@@ -15,7 +15,7 @@ def _gt_path(dataset_key: str, metric: str, k: int, root: str = "data/ground_tru
 
 
 def _compute_gt(xb: np.ndarray, xq: np.ndarray, k: int, metric: str) -> Tuple[np.ndarray, np.ndarray]:
-    # Бэтчевый брутфорс для памяти
+    # Batched brute force for memory safety
     def scores_batch(qb: np.ndarray) -> np.ndarray:
         if metric == "l2":
             x_norm2 = np.sum(xb * xb, axis=1)  # [N]
@@ -56,8 +56,8 @@ def load_or_generate(dataset_key: str,
                      metric: str,
                      root: str = "data/ground_truth") -> Tuple[np.ndarray, np.ndarray]:
     """
-    Загружает кеш ground-truth, либо вычисляет и кеширует.
-    Путь: data/ground_truth/{dataset_key}_{metric}_k{k}.npz с массивами I, D.
+    Load cached ground-truth or compute and cache it.
+    Path: data/ground_truth/{dataset_key}_{metric}_k{k}.npz with arrays I, D.
     """
     path = _gt_path(dataset_key, metric, k, root)
     if os.path.exists(path):

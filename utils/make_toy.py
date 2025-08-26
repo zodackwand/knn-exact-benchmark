@@ -40,7 +40,7 @@ def load_or_make(N, D, nq, dist, seed=42, data_dir="data"):
             meta = json.load(f)
         return xb, xq, meta
 
-    # нет кэша — генерим и сохраняем
+    # No cache — generate and save
     xb, xq = make_toy(N=N, D=D, nq=nq, dist=dist, seed=seed)
     np.save(p["xb"], xb)
     np.save(p["xq"], xq)
@@ -68,7 +68,7 @@ def parse_key(key: str):
 
 
 def load_by_key(key: str, data_dir: str = "data"):
-    """Загружает xb/xq/meta по строковому ключу, генерирует если нет."""
+    """Load xb/xq/meta by string key, generate if missing."""
     p = _paths(data_dir, key)
     if all(os.path.exists(pth) for pth in p.values()):
         xb = np.load(p["xb"], mmap_mode=None)
@@ -76,6 +76,6 @@ def load_by_key(key: str, data_dir: str = "data"):
         with open(p["meta"], "r") as f:
             meta = json.load(f)
         return xb, xq, meta
-    # если нет — парсим и генерим
+    # If absent — parse and generate
     params = parse_key(key)
     return load_or_make(**params, data_dir=data_dir)

@@ -7,8 +7,8 @@ data_dir: data
 algorithms:
   - name: ball_prune
 
-# small dataset to keep build time reasonable
-# format: toy_{dist}_N{N}_D{D}_nq{nq}_seed{seed}
+# Small dataset to keep build time reasonable
+# Format: toy_{dist}_N{N}_D{D}_nq{nq}_seed{seed}
 datasets:
   - toy_gaussian_N100_D2_nq10_seed42
 

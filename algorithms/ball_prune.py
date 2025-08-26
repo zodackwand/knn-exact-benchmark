@@ -1,5 +1,5 @@
 # algorithms/ball_prune.py
-# Адаптер вокруг реализаций из allens_code (Ball-Prune / dynamic radius BFS)
+# Adapter around implementations from allens_code (Ball-Prune / dynamic radius BFS)
 import time
 import os
 import numpy as np
@@ -14,7 +14,7 @@ class Algo:
     def __init__(self, metric: str = "l2", use_empirical=False, hnsw_M: int = 32, ef_search: int = 1,
                  seed_select_sample: int = 256):
         if metric != "l2":
-            raise ValueError("Ball_Prune поддерживает только metric='l2' на текущем этапе")
+            raise ValueError("Ball_Prune currently supports only metric='l2'")
         self.metric = metric
         self.use_empirical = use_empirical
         self.hnsw_M = hnsw_M
@@ -39,17 +39,17 @@ class Algo:
     def build(self, xb: np.ndarray, metric: Optional[str] = None):
         if metric is not None and metric != self.metric:
             if metric != "l2":
-                raise ValueError("Ball_Prune поддерживает только metric='l2'")
+                raise ValueError("Ball_Prune currently supports only metric='l2'")
         t0 = time.perf_counter()
 
         self.xb = xb.astype(np.float32, copy=False)
 
-        # Строим направленный граф и уровни безопасных радиусов
+        # Build directed graph and per-node safe radii
         self.graph, self.safe_radii_by_node = build_ball_traversable_graph(self.xb)
 
-        # Необязательная эмпирическая подстройка радиусов (дорого, выключено по умолчанию)
+        # Optional empirical radius adjustment (expensive, disabled by default)
         if self.use_empirical:
-            # По умолчанию k=5, p=0.95 как в исходнике; можно настроить через конструктор при необходимости
+            # Default k=5, p=0.95 as in the original implementation; can be configured
             self.percentile_radii_by_node = create_percentile_radii_by_node(self.xb, self.safe_radii_by_node, k=5, p=0.95)
         else:
             self.percentile_radii_by_node = None
@@ -58,7 +58,7 @@ class Algo:
         self._stats["build_time_s"] = float(build_time_s)
         self._stats["ram_rss_mb_after_build"] = psutil.Process(os.getpid()).memory_info().rss / 1e6
         
-        # число рёбер
+        # Number of edges
         if self.graph is not None:
             total_edges = sum(len(v) for v in self.graph.values())
             self._stats["edges"] = int(total_edges)
@@ -74,15 +74,15 @@ class Algo:
         self._stats["index_size_bytes"] = xb_size + graph_size + radii_size
 
     def _choose_seed(self, q: np.ndarray) -> int:
-        """Простой выбор стартовой точки: перебираем небольшой семпл базы и берём ближайшую по L2."""
+        """Simple seed selection: scan a small sample of the base and take the nearest by L2."""
         n = self.xb.shape[0]
         if n <= self.seed_select_sample:
             cand = np.arange(n)
         else:
-            # фиксированная подвыборка для скорости
+            # Fixed subsample for speed
             rng = np.random.default_rng(12345)
             cand = rng.choice(n, size=self.seed_select_sample, replace=False)
-        # считаем квадрат L2 до кандидатов
+        # squared L2 to candidates
         d2 = np.sum((self.xb[cand] - q) ** 2, axis=1)
         return int(cand[int(np.argmin(d2))])
 
@@ -99,9 +99,9 @@ class Algo:
             traversable_radii_by_node=self.safe_radii_by_node,
             percentile_radii_by_node=self.percentile_radii_by_node,
         )
-        # knn_list: list[(dist, idx)] по возрастанию dist
+        # knn_list: list[(dist, idx)] ascending by dist
         if len(knn_list) == 0:
-            # fallback: если ничего не найдено (маловероятно), вернём ближайшее из семпла
+            # Fallback: if nothing found (unlikely), return the nearest from the sample
             root = self._choose_seed(q)
             d = sq_Euclidean_d(q, self.xb[root])
             return np.array([root], dtype=np.int64), np.array([d], dtype=np.float32), 1
@@ -123,9 +123,8 @@ class Algo:
             visited_counts.append(visited)
             
             if idx.shape[0] < k:
-                # добьём до k простым брутфорсом по базе — редкий случай
+                # Pad to k with a small brute-force over a candidate subset — rare case
                 need = k - idx.shape[0]
-                # посчитаем до небольшого семпла оставшиеся
                 n = self.xb.shape[0]
                 rest = np.setdiff1d(np.arange(n, dtype=np.int64), idx, assume_unique=False)
                 if rest.size > 0:

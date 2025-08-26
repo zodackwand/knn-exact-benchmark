@@ -1,4 +1,4 @@
-# algorithms/bruteforce_numpy.py - исправленная версия
+# algorithms/bruteforce_numpy.py - revised version
 import time
 import os
 import psutil
@@ -26,7 +26,7 @@ class BruteForceNumpy:
             
         self.index = data.astype(np.float32, copy=False)
         if self.metric == "cos":
-            # Нормализуем базу для косинусного расстояния
+            # Normalize base for cosine distance
             norms = np.linalg.norm(self.index, axis=1, keepdims=True) + 1e-12
             self.index = self.index / norms
 
@@ -53,7 +53,7 @@ class BruteForceNumpy:
             end = min(start + batch_size, n_queries)
             batch_queries = queries[start:end].astype(np.float32, copy=False)
 
-            # Вычисляем расстояния
+            # Compute distances
             if self.metric == "l2":
                 dists = self._compute_l2_distances(batch_queries)
             elif self.metric == "ip":
@@ -62,7 +62,7 @@ class BruteForceNumpy:
                 normalized_queries = batch_queries / (np.linalg.norm(batch_queries, axis=1, keepdims=True) + 1e-12)
                 dists = -np.dot(normalized_queries, self.index.T)
 
-            # Находим k ближайших
+            # Find top-k
             idx = np.argpartition(dists, k - 1, axis=1)[:, :k]
             batch_dists = np.take_along_axis(dists, idx, axis=1)
             sort_order = np.argsort(batch_dists, axis=1)
@@ -73,7 +73,7 @@ class BruteForceNumpy:
         return indices, distances
 
     def _compute_l2_distances(self, queries):
-        # Оптимизированное вычисление L2 расстояний
+        # Optimized L2 computation
         q_norm2 = np.sum(queries * queries, axis=1, keepdims=True)
         x_norm2 = np.sum(self.index * self.index, axis=1)
         dots = np.dot(queries, self.index.T)

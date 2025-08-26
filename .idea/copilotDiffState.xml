@@ -30,14 +30,6 @@
             </PendingDiffInfo>
           </value>
         </entry>
-        <entry key="$PROJECT_DIR$/configs/ball_prune_small.yaml">
-          <value>
-            <PendingDiffInfo>
-              <option name="filePath" value="$PROJECT_DIR$/configs/ball_prune_small.yaml" />
-              <option name="updatedContent" value="# Ball-Prune small config (O(N^2) build; keep N small)&#10;outdir: results&#10;metric: l2&#10;warmup: 5&#10;data_dir: data&#10;&#10;algorithms:&#10;  - name: ball_prune&#10;&#10;# small dataset to keep build time reasonable&#10;# format: toy_{dist}_N{N}_D{D}_nq{nq}_seed{seed}&#10;datasets:&#10;  - toy_gaussian_N2000_D64_nq200_seed42&#10;&#10;k_values: [1, 10]&#10;" />
-            </PendingDiffInfo>
-          </value>
-        </entry>
         <entry key="$PROJECT_DIR$/requirements.txt">
           <value>
             <PendingDiffInfo>
