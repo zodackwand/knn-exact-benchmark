@@ -54,6 +54,12 @@ datasets:
   - toy_gaussian_N10000_D64_nq200_seed42
 ```
 
+### Metric alignment
+
+- The benchmark computes ground-truth using a metric (e.g., `l2`, `ip`, `cos`).
+- Ensure your algorithm uses the same metric; otherwise Recall@k is not meaningful.
+- If your algorithm decides the metric internally, expose it via `stats()` (e.g., `{ "used_metric": "cos" }`) so the bench can compute ground-truth with the correct metric and record it in results.
+
 ### Testing your adapter
 
 Run a small config and ensure artifacts are generated:

@@ -66,6 +66,13 @@ python tools/compare_runs.py --a results/run-AAA --b results/run-BBB --out resul
 ```
 It writes a CSV diff and optional latency ratio plots.
 
+### Metric alignment (important)
+
+- Ground-truth is computed using the configured metric (e.g., `l2`, `ip`, `cos`).
+- Your algorithm must use the same metric for Recall@k to be meaningful.
+- The ground-truth cache key includes the metric, so different metrics produce distinct GT files.
+- If you prefer the algorithm to own the metric, expose it (e.g., via `stats()['used_metric']`) and ensure the bench uses that for GT. Still record it in results for reproducibility.
+
 ### Config example
 
 ```yaml
