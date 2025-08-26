@@ -67,6 +67,20 @@ Run a small config and ensure artifacts are generated:
 python bench.py --config configs/minimal.yaml
 ```
 
+### What the framework collects vs what you should expose
+
+Automatic (framework):
+- Recall@k (vs ground-truth for the active metric)
+- Query latency (avg, p95) and per-query CSV
+- Build time (fallback measured if not in `stats()`)
+- Process RSS before/after build
+
+Expose via `stats()` (recommended):
+- `index_size_bytes` — memory footprint of your index structure
+- `visited_nodes_avg`, `visited_nodes_p95`, `visited_nodes_rel_avg` — traversal effort
+- `edges`, `avg_out_degree` — graph shape where applicable
+- `used_metric` — if your adapter decides the metric internally
+
 ### Style
 
 - Prefer clear, readable code and explicit variable names.

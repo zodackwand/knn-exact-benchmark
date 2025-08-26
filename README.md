@@ -73,6 +73,24 @@ It writes a CSV diff and optional latency ratio plots.
 - The ground-truth cache key includes the metric, so different metrics produce distinct GT files.
 - If you prefer the algorithm to own the metric, expose it (e.g., via `stats()['used_metric']`) and ensure the bench uses that for GT. Still record it in results for reproducibility.
 
+### Metrics collected
+
+Framework-provided (automatic):
+- Recall@k (against ground-truth computed with the active metric)
+- Query latency: `latency_ms_avg`, `latency_ms_p95` (per‑query latencies saved to `latencies_ms.csv`)
+- Build time: `build_time_s` (measured or taken from `stats()` if provided)
+- Process memory RSS: `ram_rss_mb_before_build`, `ram_rss_mb_after_build`
+
+Provided by algorithms via `Algo.stats()` (optional but recommended):
+- Index-only memory footprint: `index_size_bytes` (size of the index structure itself)
+- Traversal/graph stats: `visited_nodes_avg`, `visited_nodes_p95`, `visited_nodes_rel_avg`
+- Graph shape: `edges` (total), `avg_out_degree`
+- Effective metric used (if the algo owns metric selection): `used_metric`
+
+Notes:
+- If a stat key is not returned by the algorithm, it will appear as `null` in results.
+- See `algorithms/_template.py` for a minimal example of reporting `stats()`.
+
 ### Config example
 
 ```yaml
