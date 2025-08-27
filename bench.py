@@ -56,14 +56,18 @@ def run_single(algo_name: str,
     # warmup
     w = min(warmup, len(xq))
     if w > 0:
-        _ = algo.query(xq[:w], max(k_values))
+        k_warmup = min(max(k_values), xb.shape[0])
+        _ = algo.query(xq[:w], k_warmup)
 
     # prepare ground-truth once with the maximum k
-    k_max = max(k_values)
+    k_max = min(max(k_values), xb.shape[0])
     I_true_max, _D_true_max = gt_mod.load_or_generate(meta["key"], xb, xq, k=k_max, metric=metric)
 
     summaries = []
     for k in k_values:
+        if k > xb.shape[0]:
+            print(f"[!] Warning: k={k} exceeds dataset size {xb.shape[0]}. Skipping.")
+            continue
         print(f"[+] {algo_name} @ {dataset_key} metric={metric} k={k}")
         lat_ms = []
         for i in range(len(xq)):
