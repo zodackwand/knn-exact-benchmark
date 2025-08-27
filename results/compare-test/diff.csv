@@ -1,3 +1,0 @@
-algo,dataset_key,metric,k,recall_at_k_A,recall_at_k_B,delta_recall,latency_ms_avg_A,latency_ms_avg_B,ratio_avg_latency_B_over_A,latency_ms_p95_A,latency_ms_p95_B,ratio_p95_latency_B_over_A
-ball_prune,toy_gaussian_N100_D2_nq10_seed42,l2,1,1.0,1.0,0.0,0.6921,0.702,1.014304291287386,1.2914,1.3333,1.0324454080842496
-ball_prune,toy_gaussian_N100_D2_nq10_seed42,l2,10,1.0,1.0,0.0,1.9766,2.1155,1.0702721845593444,3.0261,3.2323,1.0681405108886024

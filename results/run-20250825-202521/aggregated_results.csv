@@ -1,3 +1,0 @@
-algo,dataset_key,metric,k,latency_ms_avg,latency_ms_p95,recall_at_k,build_time_s,ram_rss_mb_before_build,ram_rss_mb_after_build,visited_nodes,edges,combo_dir
-ball_prune,toy_gaussian_N100_D2_nq10_seed42,l2,1,0.702,1.3333,1.0,0.2282,53.47,53.58,,300,results/run-20250825-202521/ball_prune__toy_gaussian_N100_D2_nq10_seed42/k1
-ball_prune,toy_gaussian_N100_D2_nq10_seed42,l2,10,2.1155,3.2323,1.0,0.2282,53.47,53.58,,300,results/run-20250825-202521/ball_prune__toy_gaussian_N100_D2_nq10_seed42/k10

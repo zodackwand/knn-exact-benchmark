@@ -1,3 +1,0 @@
-algo,dataset_key,metric,k,latency_ms_avg,latency_ms_p95,recall_at_k,build_time_s,ram_rss_mb_before_build,ram_rss_mb_after_build,visited_nodes,edges,combo_dir
-bruteforce_numpy,toy_gaussian_N10000_D64_nq200_seed42,l2,1,4.0979,11.9954,1.0,0.0002,14.07,14.46,10000,0,results/run-20250817-205738/bruteforce_numpy__toy_gaussian_N10000_D64_nq200_seed42/k1
-bruteforce_numpy,toy_gaussian_N10000_D64_nq200_seed42,l2,10,0.9487,1.3126,1.0,0.0002,14.07,14.46,10000,0,results/run-20250817-205738/bruteforce_numpy__toy_gaussian_N10000_D64_nq200_seed42/k10
