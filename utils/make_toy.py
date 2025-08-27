@@ -69,13 +69,24 @@ def parse_key(key: str):
 
 def load_by_key(key: str, data_dir: str = "data"):
     """Load xb/xq/meta by string key, generate if missing."""
-    p = _paths(data_dir, key)
-    if all(os.path.exists(pth) for pth in p.values()):
-        xb = np.load(p["xb"], mmap_mode=None)
-        xq = np.load(p["xq"], mmap_mode=None)
-        with open(p["meta"], "r") as f:
-            meta = json.load(f)
-        return xb, xq, meta
-    # If absent — parse and generate
-    params = parse_key(key)
-    return load_or_make(**params, data_dir=data_dir)
+    # Check if it's a toy dataset
+    if key.startswith("toy_"):
+        p = _paths(data_dir, key)
+        if all(os.path.exists(pth) for pth in p.values()):
+            xb = np.load(p["xb"], mmap_mode=None)
+            xq = np.load(p["xq"], mmap_mode=None)
+            with open(p["meta"], "r") as f:
+                meta = json.load(f)
+            return xb, xq, meta
+        # If absent — parse and generate
+        params = parse_key(key)
+        return load_or_make(**params, data_dir=data_dir)
+    else:
+        # Try to load as real dataset
+        try:
+            from .real_datasets import load_real_dataset
+            return load_real_dataset(key, data_dir)
+        except ImportError:
+            raise ValueError(f"Real datasets not available. Unknown dataset key: {key}")
+        except Exception as e:
+            raise ValueError(f"Failed to load real dataset '{key}': {e}")

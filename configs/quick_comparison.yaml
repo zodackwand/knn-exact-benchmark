@@ -1,0 +1,24 @@
+# Quick algorithm comparison - small datasets for fast results
+outdir: results
+metric: l2
+warmup: 10
+data_dir: data
+
+algorithms:
+  # Exact algorithms
+  - name: bruteforce_numpy
+  - name: faiss_flat
+  - name: sklearn_knn
+  
+  # Approximate algorithms  
+  - name: faiss_ivf
+  - name: faiss_hnsw
+  - name: annoy_adapter
+  - name: ball_prune
+
+datasets:
+  # Small datasets for quick results
+  - toy_gaussian_N2000_D32_nq200_seed42     # Small scale, fast
+  - toy_gaussian_N5000_D64_nq300_seed42     # Medium scale
+
+k_values: [1, 10]
