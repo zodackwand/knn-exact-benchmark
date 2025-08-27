@@ -3,4 +3,3 @@ psutil>=5.9
 matplotlib>=3.5
 PyYAML>=6.0
 pytest>=7.0
-Flask>=2.2

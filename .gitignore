@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.dylib
+*.o
+*.a
+*.aot
+
+# Environments
+.venv/
+venv/
+.env/
+.env.*
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Project artifacts (do not commit local data/results)
+data/
+results/
+CLAUDE.md
+allens_code/
+
+# Optional components not included for initial release
+webui/
+
+# Build/distribution
+build/
+dist/
+*.egg-info/

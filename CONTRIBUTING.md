@@ -56,9 +56,10 @@ datasets:
 
 ### Metric alignment
 
-- The benchmark computes ground-truth using a metric (e.g., `l2`, `ip`, `cos`).
+- The benchmark computes ground-truth using the metric specified in YAML (e.g., `l2`, `ip`, `cos`).
 - Ensure your algorithm uses the same metric; otherwise Recall@k is not meaningful.
-- If your algorithm decides the metric internally, expose it via `stats()` (e.g., `{ "used_metric": "cos" }`) so the bench can compute ground-truth with the correct metric and record it in results.
+- The ground-truth cache key includes the metric, so different metrics produce distinct GT files.
+- If your adapter internally decides the metric, report it in `stats()` as `{ "used_metric": "..." }` for reproducibility/debugging. Note: as of now, the bench does not switch GT metric based on `stats()`; it always uses the YAML `metric`.
 
 ### Testing your adapter
 
@@ -70,7 +71,7 @@ python bench.py --config configs/minimal.yaml
 ### What the framework collects vs what you should expose
 
 Automatic (framework):
-- Recall@k (vs ground-truth for the active metric)
+- Recall@k (vs ground-truth for the active YAML metric)
 - Query latency (avg, p95) and per-query CSV
 - Build time (fallback measured if not in `stats()`)
 - Process RSS before/after build
@@ -86,4 +87,3 @@ Expose via `stats()` (recommended):
 - Prefer clear, readable code and explicit variable names.
 - Avoid global state; keep all state in the `Algo` instance.
 - Keep `stats()` stable and summarized; don’t return huge arrays.
-

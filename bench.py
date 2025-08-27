@@ -7,6 +7,7 @@ import psutil
 import yaml
 from utils.make_toy import load_or_make, load_by_key
 from utils import ground_truth as gt_mod
+from utils import get_version
 
 
 def safe_load_algo(name: str, metric: str):
@@ -100,6 +101,7 @@ def run_single(algo_name: str,
         plt.close()
 
         summary = {
+            "bench_version": get_version(),
             "algo": algo_name,
             "dataset_key": dataset_key,
             "metric": metric,
@@ -126,6 +128,7 @@ def run_single(algo_name: str,
 
 
 def run_benchmark(config_path: str):
+    print(f"[bench] knnbench version {get_version()}")
     with open(config_path, "r") as f:
         cfg = yaml.safe_load(f)
 
@@ -173,6 +176,7 @@ def run_benchmark(config_path: str):
     import csv
     csv_path = os.path.join(run_dir, "aggregated_results.csv")
     fieldnames = [
+        "bench_version",
         "algo", "dataset_key", "metric", "k",
         "latency_ms_avg", "latency_ms_p95", "recall_at_k",
         "build_time_s", "ram_rss_mb_before_build", "ram_rss_mb_after_build",
@@ -193,6 +197,7 @@ def run_benchmark(config_path: str):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", type=str, default=None, help="Path to YAML config. If set, uses config-driven benchmark mode.")
+    ap.add_argument("--version", action="store_true", help="Print knnbench version and exit")
     ap.add_argument("--algo", type=str, default="faiss_exact",
                     help="module name in algorithms/, e.g. faiss_exact or bruteforce_numpy")
     ap.add_argument("--n", type=int, default=100_000)
@@ -207,11 +212,16 @@ def main():
     ap.add_argument("--data-dir", type=str, default="data")
     args = ap.parse_args()
 
+    if args.version:
+        print(get_version())
+        return
+
     if args.config:
         run_benchmark(args.config)
         return
 
     # One-off mode (legacy), with GT cache
+    print(f"[bench] knnbench version {get_version()}")
     os.makedirs(args.outdir, exist_ok=True)
     run_id = dt.datetime.now().strftime("run-%Y%m%d-%H%M%S")
     run_dir = os.path.join(args.outdir, run_id)
@@ -268,6 +278,7 @@ def main():
     rss_after = psutil.Process(os.getpid()).memory_info().rss / 1e6
 
     summary = {
+        "bench_version": get_version(),
         "run_id": run_id,
         "algo": args.algo,
         "dataset": {"N": args.n, "D": args.dim, "nq": args.nq, "dist": args.dist},

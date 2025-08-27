@@ -24,12 +24,6 @@ This generates a new `results/run-*/` with:
 [~] progress 50/200 for bruteforce_numpy @ ... k=10
 ```
 
-4) Optional web UI (simple log/progress)
-```bash
-python -m webui.server
-# open http://127.0.0.1:5000
-```
-
 ### Datasets
 
 Toy datasets are addressed by a key and cached on disk:
@@ -71,12 +65,12 @@ It writes a CSV diff and optional latency ratio plots.
 - Ground-truth is computed using the configured metric (e.g., `l2`, `ip`, `cos`).
 - Your algorithm must use the same metric for Recall@k to be meaningful.
 - The ground-truth cache key includes the metric, so different metrics produce distinct GT files.
-- If you prefer the algorithm to own the metric, expose it (e.g., via `stats()['used_metric']`) and ensure the bench uses that for GT. Still record it in results for reproducibility.
+- If your algorithm chooses the metric internally, record it in `stats()['used_metric']` for reproducibility/debugging. Note: the benchmark currently always computes ground-truth using the metric from the YAML config.
 
 ### Metrics collected
 
 Framework-provided (automatic):
-- Recall@k (against ground-truth computed with the active metric)
+- Recall@k (against ground-truth computed with the active metric from config)
 - Query latency: `latency_ms_avg`, `latency_ms_p95` (per‑query latencies saved to `latencies_ms.csv`)
 - Build time: `build_time_s` (measured or taken from `stats()` if provided)
 - Process memory RSS: `ram_rss_mb_before_build`, `ram_rss_mb_after_build`
@@ -108,7 +102,22 @@ datasets:
 k_values: [1, 10]
 ```
 
+### Sanity-check an adapter (smoke test)
+
+Before running a full benchmark, you can quickly validate that an adapter implements the expected interface and produces sensible results:
+
+```bash
+python tools/smoke_algo.py \
+  --algo bruteforce_numpy \
+  --dataset-key toy_gaussian_N10000_D64_nq200_seed42 \
+  --metric l2 \
+  --k 10
+```
+This will:
+- build the index, run queries on the dataset key (auto-generated if missing),
+- compute Recall@k vs cached ground truth,
+- print a short summary and exit non-zero if you provide a failing `--min-recall` threshold.
+
 ### Contributing
 
 Read `CONTRIBUTING.md` for adding a new algorithm or adapter in a few minutes.
-

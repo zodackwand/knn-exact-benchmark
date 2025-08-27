@@ -3,9 +3,8 @@ import json
 import glob
 import numpy as np
 import shutil
-import time
-import datasets.ground_truth as gt
-from datasets.make_toy import load_or_make
+from utils import ground_truth as gt
+from utils.make_toy import load_or_make
 import bench
 
 
@@ -48,7 +47,7 @@ def test_run_benchmark_minimal(tmp_path):
     bench.run_benchmark(str(cfg_dst))
 
     # check that a new run-* directory was created
-    runs = sorted(glob.glob(os.path.join(outdir, "run-*")))
+    runs = sorted(glob.glob(os.path.join(str(outdir), "run-*")))
     assert runs, "run-* directory not created"
     run_dir = runs[-1]
 
@@ -65,4 +64,3 @@ def test_run_benchmark_minimal(tmp_path):
     # basic content check of the first row
     r0 = rows[0]
     assert "algo" in r0 and "k" in r0 and "latency_ms_avg" in r0 and "recall_at_k" in r0
-
