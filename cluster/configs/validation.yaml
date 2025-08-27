@@ -1,0 +1,31 @@
+# Cluster validation config - Medium scale testing
+# Purpose: Validate algorithm behavior with realistic datasets before full-scale runs
+# Resources: ~32GB RAM, ~30min runtime
+
+outdir: results  # Will be /cluster/results on actual cluster
+metric: l2
+warmup: 50
+data_dir: data   # Will be /cluster/data on actual cluster
+
+algorithms:
+  # Test core algorithms first
+  - name: bruteforce_numpy
+  - name: faiss_flat
+  
+  # Then approximate algorithms  
+  - name: faiss_ivf
+  - name: faiss_hnsw
+
+datasets:
+  # Medium-scale datasets for cluster validation
+  - toy_gaussian_N100000_D128_nq1000_seed42    # ~50MB, realistic scale
+  - toy_gaussian_N50000_D64_nq500_seed42       # Smaller for local testing
+
+k_values: [1, 10, 100]
+
+# Cluster-specific settings (ignored locally)
+cluster:
+  max_memory_gb: 32
+  max_time_hours: 0.5
+  queue: normal
+  notification: true
