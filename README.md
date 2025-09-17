@@ -57,6 +57,7 @@ See `algorithms/_template.py` for a scaffold and `algorithms/bruteforce_numpy.py
 - `bruteforce_numpy` — Exact brute-force search using numpy
 - `faiss_flat` — Exact brute-force search using FAISS library (supports L2 and inner product metrics)
 - `faiss_hnsw` — Approximate nearest neighbors using FAISS HNSW (supports L2 and inner product metrics)
+- `faiss_ivf` — Fast approximate nearest neighbors using FAISS IVF (supports L2 and inner product metrics)
 - `annoy_algo` — Approximate nearest neighbors using Spotify's Annoy library (supports L2 and cosine metrics)
 
 ### Algorithm parameters
@@ -72,6 +73,10 @@ Some algorithms support configuration parameters. While the current framework do
 - `efConstruction` (default: 200) — Size of dynamic candidate list during index construction. Higher values = better quality index but slower build time
 - `efSearch` (default: 64) — Size of dynamic candidate list during search. Higher values = better recall but slower queries
 
+**FAISS IVF parameters** (in `algorithms/faiss_ivf.py`):
+- `nlist` (default: 100) — Number of cluster centroids for partitioning. Higher values = better recall but slower build time and more memory
+- `nprobe` (default: 10) — Number of clusters to search during queries. Higher values = better recall but slower queries (max: nlist)
+
 Example modification:
 ```python
 # In algorithms/annoy_algo.py, line ~12-13:
@@ -82,6 +87,10 @@ self.search_k = params.get("search_k", 2000)  # Increase for better recall
 self.M = params.get("M", 32)  # More connections for better recall
 self.efConstruction = params.get("efConstruction", 400)  # Better build quality
 self.efSearch = params.get("efSearch", 128)  # More thorough search
+
+# In algorithms/faiss_ivf.py, line ~12-13:
+self.nlist = params.get("nlist", 50)  # Fewer clusters for smaller datasets
+self.nprobe = params.get("nprobe", 20)  # Search more clusters for better recall
 ```
 
 ### Comparing runs
