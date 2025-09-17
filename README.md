@@ -56,6 +56,7 @@ See `algorithms/_template.py` for a scaffold and `algorithms/bruteforce_numpy.py
 
 - `bruteforce_numpy` — Exact brute-force search using numpy
 - `faiss_flat` — Exact brute-force search using FAISS library (supports L2 and inner product metrics)
+- `faiss_hnsw` — Approximate nearest neighbors using FAISS HNSW (supports L2 and inner product metrics)
 - `annoy_algo` — Approximate nearest neighbors using Spotify's Annoy library (supports L2 and cosine metrics)
 
 ### Algorithm parameters
@@ -66,11 +67,21 @@ Some algorithms support configuration parameters. While the current framework do
 - `n_trees` (default: 50) — Number of trees built during indexing. More trees = better recall but slower build time and larger memory usage
 - `search_k` (default: -1) — Search effort during queries. Higher values = better recall but slower queries. When -1, uses `n_trees * k` as default
 
+**FAISS HNSW parameters** (in `algorithms/faiss_hnsw.py`):
+- `M` (default: 16) — Number of bidirectional links for each element during construction. Higher values = better recall but larger memory usage and slower build
+- `efConstruction` (default: 200) — Size of dynamic candidate list during index construction. Higher values = better quality index but slower build time
+- `efSearch` (default: 64) — Size of dynamic candidate list during search. Higher values = better recall but slower queries
+
 Example modification:
 ```python
 # In algorithms/annoy_algo.py, line ~12-13:
 self.n_trees = params.get("n_trees", 100)  # Increase for better recall
 self.search_k = params.get("search_k", 2000)  # Increase for better recall
+
+# In algorithms/faiss_hnsw.py, line ~12-14:
+self.M = params.get("M", 32)  # More connections for better recall
+self.efConstruction = params.get("efConstruction", 400)  # Better build quality
+self.efSearch = params.get("efSearch", 128)  # More thorough search
 ```
 
 ### Comparing runs
