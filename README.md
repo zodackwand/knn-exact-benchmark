@@ -52,6 +52,56 @@ class Algo:
 
 See `algorithms/_template.py` for a scaffold and `algorithms/bruteforce_numpy.py` for a concrete example.
 
+### Available algorithms
+
+- `bruteforce_numpy` — Exact brute-force search using numpy
+- `faiss_flat` — Exact brute-force search using FAISS library (supports L2 and inner product metrics)
+- `faiss_hnsw` — Approximate nearest neighbors using FAISS HNSW (supports L2 and inner product metrics)
+- `faiss_ivf` — Fast approximate nearest neighbors using FAISS IVF (supports L2 and inner product metrics)
+- `sklearn_knn` — Exact nearest neighbors using scikit-learn (supports L2 and cosine metrics)
+- `annoy_algo` — Approximate nearest neighbors using Spotify's Annoy library (supports L2 and cosine metrics)
+
+### Algorithm parameters
+
+Some algorithms support configuration parameters. While the current framework doesn't pass YAML parameters, you can modify algorithm defaults directly in the algorithm files:
+
+**Annoy parameters** (in `algorithms/annoy_algo.py`):
+- `n_trees` (default: 50) — Number of trees built during indexing. More trees = better recall but slower build time and larger memory usage
+- `search_k` (default: -1) — Search effort during queries. Higher values = better recall but slower queries. When -1, uses `n_trees * k` as default
+
+**FAISS HNSW parameters** (in `algorithms/faiss_hnsw.py`):
+- `M` (default: 16) — Number of bidirectional links for each element during construction. Higher values = better recall but larger memory usage and slower build
+- `efConstruction` (default: 200) — Size of dynamic candidate list during index construction. Higher values = better quality index but slower build time
+- `efSearch` (default: 64) — Size of dynamic candidate list during search. Higher values = better recall but slower queries
+
+**FAISS IVF parameters** (in `algorithms/faiss_ivf.py`):
+- `nlist` (default: 100) — Number of cluster centroids for partitioning. Higher values = better recall but slower build time and more memory
+- `nprobe` (default: 10) — Number of clusters to search during queries. Higher values = better recall but slower queries (max: nlist)
+
+**sklearn KNN parameters** (in `algorithms/sklearn_knn.py`):
+- `algorithm` (default: "brute") — Algorithm choice: "auto", "ball_tree", "kd_tree", "brute"
+- `leaf_size` (default: 30) — Leaf size for tree algorithms (ball_tree, kd_tree). Smaller values = more memory but potentially faster queries
+
+Example modification:
+```python
+# In algorithms/annoy_algo.py, line ~12-13:
+self.n_trees = params.get("n_trees", 100)  # Increase for better recall
+self.search_k = params.get("search_k", 2000)  # Increase for better recall
+
+# In algorithms/faiss_hnsw.py, line ~12-14:
+self.M = params.get("M", 32)  # More connections for better recall
+self.efConstruction = params.get("efConstruction", 400)  # Better build quality
+self.efSearch = params.get("efSearch", 128)  # More thorough search
+
+# In algorithms/faiss_ivf.py, line ~12-13:
+self.nlist = params.get("nlist", 50)  # Fewer clusters for smaller datasets
+self.nprobe = params.get("nprobe", 20)  # Search more clusters for better recall
+
+# In algorithms/sklearn_knn.py, line ~12-13:
+self.algorithm = params.get("algorithm", "auto")  # Let sklearn choose automatically
+self.leaf_size = params.get("leaf_size", 20)  # Smaller leaf size for tree algorithms
+```
+
 ### Comparing runs
 
 Use the utility to diff two runs by `(algo, dataset_key, metric, k)`:
