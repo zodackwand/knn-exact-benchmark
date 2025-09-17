@@ -60,9 +60,11 @@ class Algo:
         indices = np.empty((n_queries, k), dtype=np.int64)
         distances = np.empty((n_queries, k), dtype=np.float32)
 
+        # Calculate search_k_param once before the loop
+        search_k_param = self.search_k if self.search_k > 0 else self.n_trees * k
+
         for i, query in enumerate(xq):
             # Get k nearest neighbors with search_k parameter for better recall
-            search_k_param = self.search_k if self.search_k > 0 else self.n_trees * k
             neighbors, dists = self.index.get_nns_by_vector(
                 query.tolist(), k, search_k=search_k_param, include_distances=True
             )
