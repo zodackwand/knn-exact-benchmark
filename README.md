@@ -52,6 +52,26 @@ class Algo:
 
 See `algorithms/_template.py` for a scaffold and `algorithms/bruteforce_numpy.py` for a concrete example.
 
+### Available algorithms
+
+- `bruteforce_numpy` — Exact brute-force search using numpy
+- `annoy_algo` — Approximate nearest neighbors using Spotify's Annoy library (supports L2 and cosine metrics)
+
+### Algorithm parameters
+
+Some algorithms support configuration parameters. While the current framework doesn't pass YAML parameters, you can modify algorithm defaults directly in the algorithm files:
+
+**Annoy parameters** (in `algorithms/annoy_algo.py`):
+- `n_trees` (default: 50) — Number of trees built during indexing. More trees = better recall but slower build time and larger memory usage
+- `search_k` (default: -1) — Search effort during queries. Higher values = better recall but slower queries. When -1, uses `n_trees * k` as default
+
+Example modification:
+```python
+# In algorithms/annoy_algo.py, line ~12-13:
+self.n_trees = params.get("n_trees", 100)  # Increase for better recall
+self.search_k = params.get("search_k", 2000)  # Increase for better recall
+```
+
 ### Comparing runs
 
 Use the utility to diff two runs by `(algo, dataset_key, metric, k)`:
