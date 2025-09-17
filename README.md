@@ -55,6 +55,7 @@ See `algorithms/_template.py` for a scaffold and `algorithms/bruteforce_numpy.py
 ### Available algorithms
 
 - `bruteforce_numpy` — Exact brute-force search using numpy
+- `faiss_flat` — Exact brute-force search using FAISS library (supports L2 and inner product metrics)
 - `annoy_algo` — Approximate nearest neighbors using Spotify's Annoy library (supports L2 and cosine metrics)
 
 ### Algorithm parameters
