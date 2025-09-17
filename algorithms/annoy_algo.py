@@ -40,8 +40,9 @@ class Algo:
         self.index = AnnoyIndex(self.dimension, annoy_metric)
 
         # Add all vectors to the index
-        for i, vector in enumerate(xb):
-            self.index.add_item(i, vector.tolist())
+        xb_list = xb.tolist()
+        for i, vector in enumerate(xb_list):
+            self.index.add_item(i, vector)
 
         # Build the index with specified number of trees
         self.index.build(self.n_trees)
