@@ -58,6 +58,7 @@ See `algorithms/_template.py` for a scaffold and `algorithms/bruteforce_numpy.py
 - `faiss_flat` — Exact brute-force search using FAISS library (supports L2 and inner product metrics)
 - `faiss_hnsw` — Approximate nearest neighbors using FAISS HNSW (supports L2 and inner product metrics)
 - `faiss_ivf` — Fast approximate nearest neighbors using FAISS IVF (supports L2 and inner product metrics)
+- `sklearn_knn` — Exact nearest neighbors using scikit-learn (supports L2 and cosine metrics)
 - `annoy_algo` — Approximate nearest neighbors using Spotify's Annoy library (supports L2 and cosine metrics)
 
 ### Algorithm parameters
@@ -77,6 +78,10 @@ Some algorithms support configuration parameters. While the current framework do
 - `nlist` (default: 100) — Number of cluster centroids for partitioning. Higher values = better recall but slower build time and more memory
 - `nprobe` (default: 10) — Number of clusters to search during queries. Higher values = better recall but slower queries (max: nlist)
 
+**sklearn KNN parameters** (in `algorithms/sklearn_knn.py`):
+- `algorithm` (default: "brute") — Algorithm choice: "auto", "ball_tree", "kd_tree", "brute"
+- `leaf_size` (default: 30) — Leaf size for tree algorithms (ball_tree, kd_tree). Smaller values = more memory but potentially faster queries
+
 Example modification:
 ```python
 # In algorithms/annoy_algo.py, line ~12-13:
@@ -91,6 +96,10 @@ self.efSearch = params.get("efSearch", 128)  # More thorough search
 # In algorithms/faiss_ivf.py, line ~12-13:
 self.nlist = params.get("nlist", 50)  # Fewer clusters for smaller datasets
 self.nprobe = params.get("nprobe", 20)  # Search more clusters for better recall
+
+# In algorithms/sklearn_knn.py, line ~12-13:
+self.algorithm = params.get("algorithm", "auto")  # Let sklearn choose automatically
+self.leaf_size = params.get("leaf_size", 20)  # Smaller leaf size for tree algorithms
 ```
 
 ### Comparing runs
