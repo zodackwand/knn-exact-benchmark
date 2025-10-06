@@ -1,0 +1,21 @@
+benchmark:
+  name: "SIFT10K Fast Algorithms Test"
+  description: "Testing fastest algorithms on SIFT10K dataset"
+
+datasets:
+  - sift10k
+
+algorithms:
+  - faiss_flat
+  - annoy_algo
+  - faiss_ivf_flat
+  - faiss_hnsw
+
+k_values: [1, 5, 10]
+
+metrics:
+  - latency_ms_avg
+  - latency_ms_p95
+  - recall_at_k
+  - build_time_s
+  - ram_rss_mb_after_build

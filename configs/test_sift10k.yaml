@@ -1,0 +1,15 @@
+# Test configuration for SIFT10K dataset with multiple algorithms
+outdir: results
+metric: l2
+warmup: 50
+data_dir: data
+
+algorithms:
+  - name: bruteforce_numpy
+  - name: faiss_flat
+  - name: sklearn_knn
+
+datasets:
+  - sift10k
+
+k_values: [1, 10, 100]

@@ -5,7 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import psutil
 import yaml
-from utils.make_toy import load_or_make, load_by_key
+from utils.make_toy import load_or_make
+from utils.dataset_loader import load_dataset
 from utils import ground_truth as gt_mod
 from utils import get_version
 
@@ -40,7 +41,14 @@ def run_single(algo_name: str,
                data_dir: str,
                out_root: str) -> List[Dict[str, Any]]:
     """Run one algorithm on one dataset for a list of k values. Returns a list of per-(k) summaries."""
-    xb, xq, meta = load_by_key(dataset_key, data_dir=data_dir)
+    xb, xq, meta = load_dataset(dataset_key, data_dir=data_dir)
+
+    # Warn about metric mismatches for real datasets
+    if meta.get("dataset_type") == "real" and meta.get("metric") != metric:
+        dataset_metric = meta.get("metric", "unknown")
+        print(f"[!] Warning: Dataset {dataset_key} expects metric='{dataset_metric}', but using '{metric}'")
+        print(f"[!] Recall@k calculations may not be meaningful with metric mismatch")
+
     run_dir = os.path.join(out_root, f"{algo_name}__{dataset_key}")
     os.makedirs(run_dir, exist_ok=True)
 
