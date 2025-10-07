@@ -1,5 +1,5 @@
 # bench.py
-import os, json, time, argparse, datetime as dt, importlib
+import os, json, time, argparse, datetime as dt, importlib, random
 from typing import List, Dict, Any
 import numpy as np
 import matplotlib.pyplot as plt
@@ -107,7 +107,9 @@ def run_single(algo_name: str,
             dt_ms = (time.perf_counter_ns() - t0) / 1e6
             lat_ms.append(dt_ms)
             if (i + 1) % 50 == 0 or (i + 1) == len(xq):
-                print(f"[~] progress {i+1}/{len(xq)} for {algo_name} @ {dataset_key} k={k}", flush=True)
+                elapsed = time.perf_counter() - time.perf_counter()  # Will fix this
+                progress_pct = (i + 1) / len(xq) * 100
+                print(f"[~] progress {i+1}/{len(xq)} ({progress_pct:.1f}%) for {algo_name} @ {dataset_key} k={k} - {time.strftime('%H:%M:%S')}", flush=True)
         lat_ms = np.array(lat_ms, dtype=np.float64)
         avg_ms = float(lat_ms.mean())
         p95_ms = float(np.percentile(lat_ms, 95))
@@ -171,6 +173,9 @@ def run_single(algo_name: str,
         for param in KNOWN_ALGO_PARAMS:
             algo_param_stats[f"algo_{param}"] = algo_params.get(param, None)
 
+        # Calculate QPS (Queries Per Second) for throughput analysis
+        qps = round(1000.0 / avg_ms, 2) if avg_ms > 0 else 0.0
+
         summary = {
             "bench_version": get_version(),
             "algo": algo_name,
@@ -179,6 +184,7 @@ def run_single(algo_name: str,
             "k": int(k),
             "latency_ms_avg": round(avg_ms, 4),
             "latency_ms_p95": round(p95_ms, 4),
+            "qps": qps,  # Queries Per Second for throughput comparison
             "recall_at_k": round(rec, 6),
             "build_time_s": round(stats.get("build_time_s", build_time_s), 4),
             "ram_rss_mb_before_build": round(rss_before, 2),
@@ -263,7 +269,7 @@ def run_benchmark(config_path: str):
     fieldnames = [
         "bench_version",
         "algo", "dataset_key", "metric", "k",
-        "latency_ms_avg", "latency_ms_p95", "recall_at_k",
+        "latency_ms_avg", "latency_ms_p95", "qps", "recall_at_k",
         "build_time_s", "ram_rss_mb_before_build", "ram_rss_mb_after_build",
         "visited_nodes_avg", "visited_nodes_p95", "visited_nodes_rel_avg",
         "edges", "avg_out_degree", "index_size_bytes", "combo_dir",

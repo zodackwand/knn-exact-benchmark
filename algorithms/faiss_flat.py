@@ -13,6 +13,8 @@ class Algo:
         self.index = None
         self.dimension = None
         self.is_built = False
+        self._id_selector = None
+        self._cached_filter_range = None
         self._stats = {
             "build_time_s": None,
             "ram_rss_mb_after_build": None,
@@ -73,13 +75,20 @@ class Algo:
 
         # Apply filtering if requested
         if vector_metadata is not None and filter_range is not None:
-            # Create filtered candidates
-            candidates = self._create_candidates(vector_metadata, filter_range)
+            # Cache ID selector for same filter range to avoid recreation overhead
+            if self._cached_filter_range != filter_range:
+                # Clean up previous selector
+                if self._id_selector:
+                    del self._id_selector
 
-            # Create search parameters with filtering
+                # Create new candidates and ID selector
+                candidates = self._create_candidates(vector_metadata, filter_range)
+                self._id_selector = faiss.IDSelectorArray(candidates)
+                self._cached_filter_range = filter_range
+
+            # Create search parameters with cached ID selector
             search_params = faiss.SearchParameters()
-            id_selector = faiss.IDSelectorArray(candidates)
-            search_params.sel = id_selector
+            search_params.sel = self._id_selector
 
             # Search with filtering
             distances, indices = self.index.search(xq_float32, k, params=search_params)

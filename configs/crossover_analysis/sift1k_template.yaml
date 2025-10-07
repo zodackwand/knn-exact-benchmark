@@ -1,0 +1,19 @@
+bench_version: "0.1.0"
+datasets:
+  - toy_gaussian_N1000_D128_nq1000_seed42  # SIFT1K equivalent
+
+algorithms:
+  - faiss_flat
+  - faiss_ivf:
+      nlist: 32   # sqrt(1K)
+      nprobe: 1   # Start minimal!
+  - faiss_hnsw:
+      M: 16
+      efConstruction: 200
+      efSearch: 16  # Reduced
+
+filtering:
+  enabled: true
+  metadata_range: [0, {selectivity}]
+
+k_values: [10]

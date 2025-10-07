@@ -1,0 +1,19 @@
+bench_version: "0.1.0"
+datasets:
+  - sift10k
+
+algorithms:
+  - faiss_flat
+  - faiss_ivf:
+      nlist: 100  # sqrt(10K)
+      nprobe: 1   # Start minimal!
+  - faiss_hnsw:
+      M: 16
+      efConstruction: 200
+      efSearch: 16
+
+filtering:
+  enabled: true
+  metadata_range: [0, 3.125]
+
+k_values: [10]
