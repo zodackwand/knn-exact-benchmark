@@ -7,6 +7,7 @@ from .make_toy import load_by_key as load_toy_by_key, parse_key as parse_toy_key
 from .dataset_registry import get_dataset_info, DatasetInfo, is_real_dataset, suggest_similar_datasets
 from .dataset_downloader import get_downloader
 from .format_loaders import load_vectors
+from .metadata_generator import load_or_generate_metadata
 
 
 class DatasetError(Exception):
@@ -14,18 +15,19 @@ class DatasetError(Exception):
     pass
 
 
-def load_real_dataset(dataset_key: str, data_dir: str = "data") -> Tuple[np.ndarray, np.ndarray, Dict[str, Any]]:
+def load_real_dataset(dataset_key: str, data_dir: str = "data", include_metadata: bool = False) -> Tuple[np.ndarray, np.ndarray, Dict[str, Any]]:
     """Load a real dataset by key.
 
     Args:
         dataset_key: Dataset identifier (e.g., 'sift1m', 'sift100k')
         data_dir: Directory for caching downloaded files
+        include_metadata: Whether to include vector metadata for filtering
 
     Returns:
         Tuple of (xb, xq, metadata) where:
         - xb: base vectors (database)
         - xq: query vectors
-        - metadata: dataset metadata dict
+        - metadata: dataset metadata dict (includes 'vector_metadata' if requested)
     """
     # Get dataset info from registry
     dataset_info = get_dataset_info(dataset_key)
@@ -84,6 +86,11 @@ def load_real_dataset(dataset_key: str, data_dir: str = "data") -> Tuple[np.ndar
     if groundtruth is not None:
         metadata["groundtruth_shape"] = groundtruth.shape
 
+    # Add vector metadata if requested
+    if include_metadata:
+        vector_metadata = load_or_generate_metadata(dataset_key, xb.shape[0], data_dir)
+        metadata["vector_metadata"] = vector_metadata
+
     # Validate dimensions
     if xb.shape[1] != xq.shape[1]:
         raise DatasetError(f"Dimension mismatch: base={xb.shape[1]}, query={xq.shape[1]}")
@@ -96,7 +103,7 @@ def load_real_dataset(dataset_key: str, data_dir: str = "data") -> Tuple[np.ndar
     return xb, xq, metadata
 
 
-def load_dataset(dataset_key: str, data_dir: str = "data") -> Tuple[np.ndarray, np.ndarray, Dict[str, Any]]:
+def load_dataset(dataset_key: str, data_dir: str = "data", include_metadata: bool = False) -> Tuple[np.ndarray, np.ndarray, Dict[str, Any]]:
     """Load any dataset (toy or real) by key.
 
     This is the main entry point for dataset loading. It automatically
@@ -107,12 +114,13 @@ def load_dataset(dataset_key: str, data_dir: str = "data") -> Tuple[np.ndarray, 
                     - Toy: 'toy_gaussian_N10000_D64_nq200_seed42'
                     - Real: 'sift1m', 'sift100k', etc.
         data_dir: Directory for data storage/caching
+        include_metadata: Whether to include vector metadata for filtering (real datasets only)
 
     Returns:
         Tuple of (xb, xq, metadata) where:
         - xb: base vectors (database) as float32 array
         - xq: query vectors as float32 array
-        - metadata: dataset metadata dict
+        - metadata: dataset metadata dict (includes 'vector_metadata' if requested)
 
     Raises:
         DatasetError: If dataset cannot be loaded
@@ -120,10 +128,14 @@ def load_dataset(dataset_key: str, data_dir: str = "data") -> Tuple[np.ndarray, 
     try:
         if is_real_dataset(dataset_key):
             # Load real dataset
-            return load_real_dataset(dataset_key, data_dir)
+            return load_real_dataset(dataset_key, data_dir, include_metadata)
         elif dataset_key.startswith("toy_"):
-            # Load toy dataset (existing functionality)
-            return load_toy_by_key(dataset_key, data_dir)
+            # Load toy dataset (existing functionality - no metadata support for now)
+            xb, xq, metadata = load_toy_by_key(dataset_key, data_dir)
+            # Note: Toy datasets don't support vector metadata yet
+            if include_metadata:
+                print(f"[warning] Vector metadata not supported for toy datasets (dataset: {dataset_key})")
+            return xb, xq, metadata
         else:
             # Unknown format
             suggestions = suggest_similar_datasets(dataset_key)

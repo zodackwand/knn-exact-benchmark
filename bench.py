@@ -7,15 +7,16 @@ import psutil
 import yaml
 from utils.make_toy import load_or_make
 from utils.dataset_loader import load_dataset
+from utils.metadata_generator import load_or_generate_metadata
 from utils import ground_truth as gt_mod
 from utils import get_version
 
 
-def safe_load_algo(name: str, metric: str):
+def safe_load_algo(name: str, metric: str, **params):
     try:
         mod = importlib.import_module(f"algorithms.{name}")
         AlgoClass = getattr(mod, "Algo")
-        return AlgoClass(metric=metric)
+        return AlgoClass(metric=metric, **params)
     except Exception as e:
         print(f"[!] Failed to load algorithm '{name}': {e}. Skipping.")
         return None
@@ -39,7 +40,9 @@ def run_single(algo_name: str,
                k_values: List[int],
                warmup: int,
                data_dir: str,
-               out_root: str) -> List[Dict[str, Any]]:
+               out_root: str,
+               algo_params: Dict[str, Any] = None,
+               filtering_config: Dict[str, Any] = None) -> List[Dict[str, Any]]:
     """Run one algorithm on one dataset for a list of k values. Returns a list of per-(k) summaries."""
     xb, xq, meta = load_dataset(dataset_key, data_dir=data_dir)
 
@@ -49,10 +52,23 @@ def run_single(algo_name: str,
         print(f"[!] Warning: Dataset {dataset_key} expects metric='{dataset_metric}', but using '{metric}'")
         print(f"[!] Recall@k calculations may not be meaningful with metric mismatch")
 
+    # Handle filtering configuration
+    algo_params = algo_params or {}
+    filtering_config = filtering_config or {}
+    filtering_enabled = filtering_config.get("enabled", False)
+
+    # Load metadata if filtering is enabled
+    vector_metadata = None
+    filter_range = None
+    if filtering_enabled:
+        vector_metadata = load_or_generate_metadata(dataset_key, len(xb), data_dir=data_dir)
+        filter_range = filtering_config.get("metadata_range", [0, 100])
+        print(f"[+] Filtering enabled: range={filter_range} (selectivity: {filter_range[1]-filter_range[0]}%)")
+
     run_dir = os.path.join(out_root, f"{algo_name}__{dataset_key}")
     os.makedirs(run_dir, exist_ok=True)
 
-    algo = safe_load_algo(algo_name, metric=metric)
+    algo = safe_load_algo(algo_name, metric=metric, **algo_params)
     if algo is None:
         return []
 
@@ -65,7 +81,10 @@ def run_single(algo_name: str,
     w = min(warmup, len(xq))
     if w > 0:
         k_warmup = min(max(k_values), xb.shape[0])
-        _ = algo.query(xq[:w], k_warmup)
+        if filtering_enabled:
+            _ = algo.query(xq[:w], k_warmup, vector_metadata=vector_metadata, filter_range=filter_range)
+        else:
+            _ = algo.query(xq[:w], k_warmup)
 
     # prepare ground-truth once with the maximum k
     k_max = min(max(k_values), xb.shape[0])
@@ -81,7 +100,10 @@ def run_single(algo_name: str,
         for i in range(len(xq)):
             q = xq[i:i+1]
             t0 = time.perf_counter_ns()
-            I_pred, D_pred = algo.query(q, k)
+            if filtering_enabled:
+                I_pred, D_pred = algo.query(q, k, vector_metadata=vector_metadata, filter_range=filter_range)
+            else:
+                I_pred, D_pred = algo.query(q, k)
             dt_ms = (time.perf_counter_ns() - t0) / 1e6
             lat_ms.append(dt_ms)
             if (i + 1) % 50 == 0 or (i + 1) == len(xq):
@@ -90,7 +112,10 @@ def run_single(algo_name: str,
         avg_ms = float(lat_ms.mean())
         p95_ms = float(np.percentile(lat_ms, 95))
 
-        I_pred_all, _ = algo.query(xq, k)
+        if filtering_enabled:
+            I_pred_all, _ = algo.query(xq, k, vector_metadata=vector_metadata, filter_range=filter_range)
+        else:
+            I_pred_all, _ = algo.query(xq, k)
         rec = recall_at_k(I_pred_all, I_true_max[:, :k])
 
         stats = {}
@@ -112,6 +137,40 @@ def run_single(algo_name: str,
         plt.savefig(os.path.join(combo_dir, "latency.png"), dpi=150, bbox_inches="tight")
         plt.close()
 
+        # Calculate filtering statistics
+        filtering_stats = {}
+        if filtering_enabled:
+            total_vectors = len(xb)
+            filtered_count = np.sum((vector_metadata >= filter_range[0]) & (vector_metadata <= filter_range[1]))
+            selectivity = (filtered_count / total_vectors) * 100.0
+            filtering_stats = {
+                "filtering_enabled": True,
+                "filter_range": filter_range,
+                "filter_selectivity_percent": round(selectivity, 2),
+                "filtered_vector_count": int(filtered_count),
+                "total_vector_count": int(total_vectors)
+            }
+        else:
+            filtering_stats = {
+                "filtering_enabled": False,
+                "filter_range": None,
+                "filter_selectivity_percent": None,
+                "filtered_vector_count": None,
+                "total_vector_count": None
+            }
+
+        # Add algorithm parameters with algo_ prefix
+        # Define known algorithm parameters for consistent results structure
+        KNOWN_ALGO_PARAMS = [
+            "nlist", "nprobe",  # faiss_ivf
+            "M", "efConstruction", "efSearch",  # faiss_hnsw
+            "n_neighbors", "algorithm", "leaf_size"  # sklearn_knn
+        ]
+
+        algo_param_stats = {}
+        for param in KNOWN_ALGO_PARAMS:
+            algo_param_stats[f"algo_{param}"] = algo_params.get(param, None)
+
         summary = {
             "bench_version": get_version(),
             "algo": algo_name,
@@ -131,6 +190,8 @@ def run_single(algo_name: str,
             "avg_out_degree": stats.get("avg_out_degree"),
             "index_size_bytes": stats.get("index_size_bytes"),
             "combo_dir": combo_dir,
+            **filtering_stats,  # Add filtering metadata
+            **algo_param_stats  # Add algorithm parameters
         }
         with open(os.path.join(combo_dir, "summary.json"), "w") as f:
             json.dump(summary, f, indent=2)
@@ -158,16 +219,26 @@ def run_benchmark(config_path: str):
     warmup = cfg.get("warmup", 50)
     metric = cfg.get("metric", "l2")
 
+    # Parse filtering configuration
+    filtering_config = cfg.get("filtering", {})
+
     all_rows: List[Dict[str, Any]] = []
 
     for ds_key in datasets:
         for algo_cfg in algorithms:
             if isinstance(algo_cfg, dict):
-                name = algo_cfg.get("name")
+                # Algorithm has parameters
+                name = list(algo_cfg.keys())[0]  # First key is the algorithm name
+                algo_params = algo_cfg[name] if isinstance(algo_cfg[name], dict) else {}
             else:
+                # Simple string algorithm name
                 name = str(algo_cfg)
+                algo_params = {}
+
             if not name:
                 continue
+
+            print(f"[+] Running {name} with params: {algo_params}")
             rows = run_single(
                 algo_name=name,
                 dataset_key=ds_key,
@@ -176,6 +247,8 @@ def run_benchmark(config_path: str):
                 warmup=warmup,
                 data_dir=data_dir,
                 out_root=run_dir,
+                algo_params=algo_params,
+                filtering_config=filtering_config,
             )
             all_rows.extend(rows)
 
@@ -193,7 +266,13 @@ def run_benchmark(config_path: str):
         "latency_ms_avg", "latency_ms_p95", "recall_at_k",
         "build_time_s", "ram_rss_mb_before_build", "ram_rss_mb_after_build",
         "visited_nodes_avg", "visited_nodes_p95", "visited_nodes_rel_avg",
-        "edges", "avg_out_degree", "index_size_bytes", "combo_dir"
+        "edges", "avg_out_degree", "index_size_bytes", "combo_dir",
+        "filtering_enabled", "filter_range", "filter_selectivity_percent",
+        "filtered_vector_count", "total_vector_count",
+        # Algorithm parameters
+        "algo_nlist", "algo_nprobe",  # faiss_ivf
+        "algo_M", "algo_efConstruction", "algo_efSearch",  # faiss_hnsw
+        "algo_n_neighbors", "algo_algorithm", "algo_leaf_size"  # sklearn_knn
     ]
     with open(csv_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)

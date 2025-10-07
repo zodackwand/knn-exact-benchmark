@@ -2,7 +2,7 @@ import time
 import os
 import psutil
 import numpy as np
-from typing import Optional
+from typing import Optional, Tuple
 import faiss
 
 
@@ -54,18 +54,45 @@ class Algo:
         self._stats["build_time_s"] = float(build_time)
         self._stats["ram_rss_mb_after_build"] = psutil.Process(os.getpid()).memory_info().rss / 1e6
 
-    def query(self, xq: np.ndarray, k: int):
+    def _create_candidates(self, vector_metadata: np.ndarray, filter_range: Tuple[int, int]) -> np.ndarray:
+        """Create candidate indices from metadata filtering.
+
+        Args:
+            vector_metadata: Array of metadata values for each vector
+            filter_range: Tuple of (min_val, max_val) for filtering
+
+        Returns:
+            Array of candidate indices that pass the filter
+        """
+        min_val, max_val = filter_range
+        mask = (vector_metadata >= min_val) & (vector_metadata <= max_val)
+        candidates = np.where(mask)[0].astype(np.int64)
+        return candidates
+
+    def query(self, xq: np.ndarray, k: int, vector_metadata: Optional[np.ndarray] = None,
+              filter_range: Optional[Tuple[int, int]] = None):
         if not self.is_built:
             raise RuntimeError("Index not built. Call build() first.")
-
-        # Set search parameters
-        self.index.nprobe = self.nprobe
 
         # FAISS expects float32
         xq_float32 = xq.astype(np.float32, copy=False)
 
-        # Search for k nearest neighbors
-        distances, indices = self.index.search(xq_float32, k)
+        # Apply filtering if requested
+        if vector_metadata is not None and filter_range is not None:
+            # Create filtered candidates
+            candidates = self._create_candidates(vector_metadata, filter_range)
+
+            # Create search parameters with filtering
+            search_params = faiss.SearchParametersIVF(nprobe=self.nprobe)
+            id_selector = faiss.IDSelectorArray(candidates)
+            search_params.sel = id_selector
+
+            # Search with filtering
+            distances, indices = self.index.search(xq_float32, k, params=search_params)
+        else:
+            # Standard search without filtering (keep existing behavior)
+            self.index.nprobe = self.nprobe
+            distances, indices = self.index.search(xq_float32, k)
 
         # Convert to int64 for indices
         indices = indices.astype(np.int64)
