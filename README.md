@@ -26,16 +26,30 @@ This generates a new `results/run-*/` with:
 
 ### Datasets
 
+knnbench supports both toy datasets and real-world benchmark datasets.
+
+#### Toy Datasets
 Toy datasets are addressed by a key and cached on disk:
 ```
 toy_{dist}_N{N}_D{D}_nq{nq}_seed{seed}
 ```
 If the key is missing, data are generated and saved under `data/` automatically.
 
+#### Real Datasets
+Real datasets are automatically downloaded and cached. Currently supported:
+
+**SIFT Family** (128D SIFT features, L2 metric):
+- `sift1m` — 1M base vectors, 10K queries (full SIFT1M dataset)
+- `sift100k` — 100K base vectors, 10K queries (subset of SIFT1M)
+- `sift10k` — 10K base vectors, 10K queries (subset of SIFT1M)
+
+Real datasets are downloaded from their original sources (e.g., INRIA corpus-texmex for SIFT) and cached locally. The system handles format conversion and subset extraction automatically.
+
 Configure datasets via YAML:
 ```yaml
 datasets:
-  - toy_gaussian_N10000_D64_nq200_seed42
+  - toy_gaussian_N10000_D64_nq200_seed42  # Toy dataset
+  - sift10k                               # Real dataset
 ```
 
 ### Algorithm interface (stable)
@@ -63,44 +77,86 @@ See `algorithms/_template.py` for a scaffold and `algorithms/bruteforce_numpy.py
 
 ### Algorithm parameters
 
-Some algorithms support configuration parameters. While the current framework doesn't pass YAML parameters, you can modify algorithm defaults directly in the algorithm files:
+Algorithms support configuration parameters directly through YAML config files. Parameters are passed to the algorithm constructor automatically.
 
-**Annoy parameters** (in `algorithms/annoy_algo.py`):
+**Available parameters by algorithm:**
+
+**Annoy** (`annoy_algo`):
 - `n_trees` (default: 50) — Number of trees built during indexing. More trees = better recall but slower build time and larger memory usage
 - `search_k` (default: -1) — Search effort during queries. Higher values = better recall but slower queries. When -1, uses `n_trees * k` as default
 
-**FAISS HNSW parameters** (in `algorithms/faiss_hnsw.py`):
+**FAISS HNSW** (`faiss_hnsw`):
 - `M` (default: 16) — Number of bidirectional links for each element during construction. Higher values = better recall but larger memory usage and slower build
 - `efConstruction` (default: 200) — Size of dynamic candidate list during index construction. Higher values = better quality index but slower build time
 - `efSearch` (default: 64) — Size of dynamic candidate list during search. Higher values = better recall but slower queries
 
-**FAISS IVF parameters** (in `algorithms/faiss_ivf.py`):
+**FAISS IVF** (`faiss_ivf`):
 - `nlist` (default: 100) — Number of cluster centroids for partitioning. Higher values = better recall but slower build time and more memory
 - `nprobe` (default: 10) — Number of clusters to search during queries. Higher values = better recall but slower queries (max: nlist)
 
-**sklearn KNN parameters** (in `algorithms/sklearn_knn.py`):
+**sklearn KNN** (`sklearn_knn`):
 - `algorithm` (default: "brute") — Algorithm choice: "auto", "ball_tree", "kd_tree", "brute"
 - `leaf_size` (default: 30) — Leaf size for tree algorithms (ball_tree, kd_tree). Smaller values = more memory but potentially faster queries
 
-Example modification:
-```python
-# In algorithms/annoy_algo.py, line ~12-13:
-self.n_trees = params.get("n_trees", 100)  # Increase for better recall
-self.search_k = params.get("search_k", 2000)  # Increase for better recall
+**FAISS Flat** (`faiss_flat`): No configurable parameters (exact brute-force)
+**Brute-force NumPy** (`bruteforce_numpy`): No configurable parameters (exact brute-force)
 
-# In algorithms/faiss_hnsw.py, line ~12-14:
-self.M = params.get("M", 32)  # More connections for better recall
-self.efConstruction = params.get("efConstruction", 400)  # Better build quality
-self.efSearch = params.get("efSearch", 128)  # More thorough search
-
-# In algorithms/faiss_ivf.py, line ~12-13:
-self.nlist = params.get("nlist", 50)  # Fewer clusters for smaller datasets
-self.nprobe = params.get("nprobe", 20)  # Search more clusters for better recall
-
-# In algorithms/sklearn_knn.py, line ~12-13:
-self.algorithm = params.get("algorithm", "auto")  # Let sklearn choose automatically
-self.leaf_size = params.get("leaf_size", 20)  # Smaller leaf size for tree algorithms
+**Example configuration:**
+```yaml
+algorithms:
+  - bruteforce_numpy                    # No parameters
+  - faiss_flat                          # No parameters
+  - annoy_algo:
+      n_trees: 100                      # More trees for better recall
+      search_k: 2000                    # Higher search effort
+  - faiss_hnsw:
+      M: 32                             # More connections
+      efConstruction: 400               # Better build quality
+      efSearch: 128                     # More thorough search
+  - faiss_ivf:
+      nlist: 50                         # Fewer clusters for smaller datasets
+      nprobe: 20                        # Search more clusters
+  - sklearn_knn:
+      algorithm: auto                   # Let sklearn choose automatically
+      leaf_size: 20                     # Smaller leaf size
 ```
+
+### Metadata Filtering
+
+knnbench supports metadata-based filtering to simulate selective vector search scenarios. This allows benchmarking performance when searching only a subset of vectors based on metadata criteria.
+
+#### How it works
+- Each vector gets assigned a random integer metadata value (0-100) using a deterministic seed based on the dataset
+- Metadata is automatically generated via `utils/metadata_generator.py` and cached for reproducibility
+- Filtering narrows the search space by only considering vectors with metadata in a specified range
+- The `metadata_range` defines which vectors are eligible for search (e.g., `[0, 25]` means only vectors with metadata 0-25)
+
+#### Configuration
+Enable filtering in your YAML config:
+
+```yaml
+filtering:
+  enabled: true
+  metadata_range: [0, 25]    # Only search vectors with metadata 0-25 (≈25% selectivity)
+```
+
+When filtering is disabled, all vectors are searched (equivalent to `metadata_range: [0, 100]`).
+
+#### Selectivity percentages
+The `metadata_range` roughly corresponds to search selectivity:
+- `[0, 100]` — 100% selectivity (no filtering, search all vectors)
+- `[0, 50]` — ~50% selectivity (search roughly half the vectors)
+- `[0, 25]` — ~25% selectivity (search roughly quarter of the vectors)
+- `[0, 10]` — ~10% selectivity (search roughly 10% of the vectors)
+
+#### Results tracking
+When filtering is enabled, additional metrics are recorded:
+- `filtering_enabled`: Whether filtering was active
+- `filter_range`: The metadata range used
+- `filter_selectivity_percent`: Calculated selectivity percentage
+- `eligible_vectors`: Number of vectors that matched the filter
+
+This enables analysis of how search performance scales with selectivity levels.
 
 ### Comparing runs
 
@@ -135,8 +191,9 @@ Notes:
 - If a stat key is not returned by the algorithm, it will appear as `null` in results.
 - See `algorithms/_template.py` for a minimal example of reporting `stats()`.
 
-### Config example
+### Config examples
 
+#### Basic configuration (toy dataset)
 ```yaml
 outdir: results
 metric: l2
@@ -144,12 +201,58 @@ warmup: 10
 data_dir: data
 
 algorithms:
-  - name: bruteforce_numpy
+  - bruteforce_numpy
 
 datasets:
   - toy_gaussian_N10000_D64_nq200_seed42
 
 k_values: [1, 10]
+```
+
+#### Real dataset with algorithm parameters
+```yaml
+outdir: results
+metric: l2
+warmup: 10
+data_dir: data
+
+algorithms:
+  - faiss_flat                         # Exact baseline
+  - faiss_hnsw:                        # Approximate with custom params
+      M: 32
+      efConstruction: 400
+      efSearch: 128
+  - annoy_algo:                        # Approximate with custom params
+      n_trees: 100
+      search_k: 2000
+
+datasets:
+  - sift10k                            # Real dataset
+
+k_values: [1, 10, 100]
+```
+
+#### Filtering configuration
+```yaml
+outdir: results
+metric: l2
+warmup: 10
+data_dir: data
+
+algorithms:
+  - faiss_flat
+  - faiss_ivf:
+      nlist: 100
+      nprobe: 10
+
+datasets:
+  - sift100k
+
+filtering:                             # Enable metadata filtering
+  enabled: true
+  metadata_range: [0, 25]              # Search ~25% of vectors
+
+k_values: [10]
 ```
 
 ### Sanity-check an adapter (smoke test)
