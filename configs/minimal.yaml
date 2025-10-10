@@ -5,7 +5,7 @@ warmup: 10
 data_dir: data
 
 algorithms:
-  - name: bruteforce_numpy
+  - bruteforce_numpy
 
 # Small, fast-to-run dataset key
 # Will be generated on the fly if missing

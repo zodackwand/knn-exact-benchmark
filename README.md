@@ -8,7 +8,14 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-2) Run a minimal config
+2) Run a benchmark (choose one method):
+
+**Option A: Command-line (single algorithm, quick start)**
+```bash
+python bench.py --algo bruteforce_numpy --n 10000 --dim 64 --nq 200 --k 10
+```
+
+**Option B: Config file (multiple algorithms, more control)**
 ```bash
 python bench.py --config configs/minimal.yaml
 ```
